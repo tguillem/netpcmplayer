@@ -1,0 +1,80 @@
+<resources>
+    <string name="app_name">NetPCMPlayer</string>
+
+    <string name="notification_title_npcmp_running">NetPCMPlayer is running</string>
+    <string name="notification_text_npcmp_running">Touch for NetPCMPlayer options.</string>
+
+    <string name="pref_header_general">General</string>
+
+    <string name="general_run_title">Run</string>
+    <string name="general_run_summary_on">NetPCMPlayer is running</string>
+    <string name="general_run_summary_off">NetPCMPlayer is not running</string>
+
+    <string name="general_run_on_boot_title">Run on boot</string>
+    <string name="general_run_on_boot_summary_on">NetPCMPlayer will start automatically</string>
+    <string name="general_run_on_boot_summary_off">NetPCMPlayer won\'t start automatically</string>
+
+    <string name="general_wakelock_title">Prevent suspend when running</string>
+    <string name="general_wakelock_summary_on">NetPCMPlayer will prevent suspend when running (with a Wakelock)</string>
+    <string name="general_wakelock_summary_off">NetPCMPlayer won\'t prevent suspend when running</string>
+
+    <string name="pref_header_audio">Audio</string>
+
+    <string name="audio_encoding_title">Audio encoding</string>
+    <string name="audio_encoding_default">2</string>
+    <string-array name="audio_encoding_titles">
+        <item>s8</item>
+        <item>s16</item>
+    </string-array>
+    <string-array name="audio_encoding_values">
+        <item>3</item>
+        <item>2</item>
+    </string-array>
+
+    <string name="audio_samplerate_title">Audio Sample rate</string>
+    <string name="audio_samplerate_default">44100</string>
+    <string-array name="audio_samplerate_titles">
+        <item>8 kHz</item>
+        <item>44.1 kHz</item>
+        <item>48 kHz</item>
+        <item>96 kHz</item>
+    </string-array>
+    <string-array name="audio_samplerate_values">
+        <item>8000</item>
+        <item>44100</item>
+        <item>48000</item>
+        <item>96000</item>
+    </string-array>
+
+    <string name="audio_channels_title">Audio channels</string>
+    <string name="audio_channels_default">12</string>
+    <string-array name="audio_channels_titles">
+        <item>Mono</item>
+        <item>Stereo</item>
+        <item>Stereo/center</item>
+        <item>Quad</item>
+        <item>Quad/center</item>
+        <item>5.1</item>
+        <item>5.1/back center</item>
+    </string-array>
+    <string-array name="audio_channels_values">
+        <item>4</item>
+        <item>12</item>
+        <item>28</item>
+        <item>204</item>
+        <item>220</item>
+        <item>252</item>
+        <item>1276</item>
+    </string-array>
+
+    <string name="audio_delay_title">Max audio delay (in ms)</string>
+    <string name="audio_delay_default">500</string>
+
+    <string name="pref_header_server">Server</string>
+
+    <string name="server_port_title">Server TCP port [1; 65536]</string>
+    <string name="server_port_default">24000</string>
+
+    <string name="server_bindaddr_title">Bind address</string>
+
+</resources>

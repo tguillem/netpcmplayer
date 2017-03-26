@@ -1,0 +1,81 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="general_run"
+        android:title="@string/general_run_title"
+        android:summaryOn="@string/general_run_summary_on"
+        android:summaryOff="@string/general_run_summary_off"
+        android:persistent="false" />
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="general_run_on_boot"
+        android:title="@string/general_run_on_boot_title"
+        android:summaryOn="@string/general_run_on_boot_summary_on"
+        android:summaryOff="@string/general_run_on_boot_summary_off" />
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="general_wakelock"
+        android:title="@string/general_wakelock_title"
+        android:summaryOn="@string/general_wakelock_summary_on"
+        android:summaryOff="@string/general_wakelock_summary_off" />
+
+    <ListPreference
+        android:defaultValue="@string/audio_encoding_default"
+        android:entries="@array/audio_encoding_titles"
+        android:entryValues="@array/audio_encoding_values"
+        android:key="audio_encoding"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/audio_encoding_title"
+        android:summary="%s" />
+
+    <ListPreference
+        android:defaultValue="-1"
+        android:entries="@array/audio_samplerate_titles"
+        android:entryValues="@array/audio_samplerate_values"
+        android:key="audio_samplerate"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/audio_samplerate_title"
+        android:summary="%s"/>
+
+    <ListPreference
+        android:defaultValue="@string/audio_channels_default"
+        android:entries="@array/audio_channels_titles"
+        android:entryValues="@array/audio_channels_values"
+        android:key="audio_channels"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/audio_channels_title"
+        android:summary="%s"/>
+
+    <EditTextPreference
+        android:defaultValue="@string/audio_delay_default"
+        android:inputType="numberSigned"
+        android:key="audio_delay"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/audio_delay_title" />
+
+    <EditTextPreference
+        android:defaultValue="@string/server_port_default"
+        android:inputType="numberSigned"
+        android:key="server_port"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/server_port_title" />
+
+    <EditTextPreference
+        android:inputType="textNoSuggestions"
+        android:key="server_bindaddr"
+        android:maxLines="1"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/server_bindaddr_title" />
+
+</PreferenceScreen>
