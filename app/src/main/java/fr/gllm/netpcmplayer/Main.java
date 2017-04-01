@@ -33,6 +33,8 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public class Main extends Service implements Runnable {
 
@@ -156,6 +158,12 @@ public class Main extends Service implements Runnable {
 
     @SuppressWarnings("InfiniteLoopStatement")
     private void serverPlay() {
+        try {
+            mSocket.setSoTimeout(8000);
+        } catch (SocketException e) {
+            return;
+        }
+
         mAudioTrack.play();
         try {
             final InputStream is = mSocket.getInputStream();
@@ -168,6 +176,12 @@ public class Main extends Service implements Runnable {
                     return;
                 }
                 mAudioTrack.write(bytes, 0, read);
+            }
+        } catch (SocketTimeoutException timeoutIgnored) {
+            try {
+                Log.e(TAG, "The socket time outed: " + mSocket);
+                mSocket.close();
+            } catch (IOException ignored) {
             }
         } catch (IOException ignored) {
         } finally {
