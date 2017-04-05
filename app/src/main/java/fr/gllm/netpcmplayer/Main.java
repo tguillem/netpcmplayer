@@ -35,6 +35,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
 
 public class Main extends Service implements Runnable {
 
@@ -124,7 +129,7 @@ public class Main extends Service implements Runnable {
         }
     }
 
-    private static final String TAG = "NPCMP/Main";
+    static final String TAG = "NPCMP";
     private static final int sMinSocketReadOnceInBytes = 8192;
 
     private Thread mThread = null;
@@ -139,6 +144,28 @@ public class Main extends Service implements Runnable {
     private final IBinder mBinder = new LocalBinder();
     private PowerManager.WakeLock mWakelock = null;
     private OnErrorListener mOnErrorListener = null;
+    private static final int LOG_COUNT = 30;
+    private ArrayList<String> mLogList = new ArrayList<>(LOG_COUNT);
+
+    private synchronized void addLog(boolean error, String log, Exception e) {
+        final SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault());
+        final String time = sdf.format(Calendar.getInstance().getTime());
+        mLogList.add(time + " " + (error ? "E" : "V") + "/ " + log);
+        if (mLogList.size() > LOG_COUNT)
+            mLogList.remove(0);
+        if (error)
+            Log.e(TAG, log, e);
+        else
+            Log.d(TAG, log, e);
+    }
+
+    private void addLog(boolean error, String log) {
+        addLog(error, log, null);
+    }
+
+    public synchronized List<String> getLogs() {
+        return new ArrayList<>(mLogList);
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -179,7 +206,7 @@ public class Main extends Service implements Runnable {
             }
         } catch (SocketTimeoutException timeoutIgnored) {
             try {
-                Log.e(TAG, "The socket time outed: " + mSocket);
+                addLog(true, "The socket time outed: " + mSocket);
                 mSocket.close();
             } catch (IOException ignored) {
             }
@@ -231,7 +258,7 @@ public class Main extends Service implements Runnable {
             quitThread("Arguments invalid");
             return;
         }
-        Log.d(TAG, "starting with " + mArguments);
+        addLog(false, "starting with " + mArguments);
 
         if (!createAudioTrack(mArguments))
             return;
@@ -254,7 +281,7 @@ public class Main extends Service implements Runnable {
             } catch (IOException ignored) {
                 break;
             }
-            Log.d(TAG, "New socket accepted: " + mSocket);
+            addLog(false, "New socket accepted: " + mSocket);
             serverPlay();
             synchronized (this) {
                 mSocket = null;
@@ -276,10 +303,7 @@ public class Main extends Service implements Runnable {
             if (!mStopping) {
                 if (mOnErrorListener != null)
                     mOnErrorListener.OnError(error);
-                if (e != null)
-                    Log.e(TAG, error, e);
-                else
-                    Log.e(TAG, error);
+                addLog(true, "thread: " + error, e);
             }
         }
         stopService();
@@ -321,7 +345,6 @@ public class Main extends Service implements Runnable {
         }
 
         long delayInBytes = (long) args.audioDelayInMs * args.audioSampleRate / 1000 * bytesPerFrames;
-        Log.e(TAG, "delayInBytes: " + delayInBytes);
 
         int atBufferSizeInBytes;
         if (delayInBytes - (2 * minAtBufferSizeInBytes) >= sMinSocketReadOnceInBytes) {
@@ -336,7 +359,7 @@ public class Main extends Service implements Runnable {
             return -1;
         }
 
-        Log.d(TAG, "delays in Bytes: total: " + delayInBytes +", minAt: " +
+        addLog(false, "delays in Bytes: total: " + delayInBytes +", minAt: " +
                 minAtBufferSizeInBytes + ", readOnce: " + mSocketReadOnceInBytes + ", at: " + atBufferSizeInBytes);
         return atBufferSizeInBytes;
     }
@@ -450,11 +473,11 @@ public class Main extends Service implements Runnable {
             PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
             mWakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
             mWakelock.acquire();
-            Log.d(TAG, "Wakelock acquired");
+            addLog(false, "Wakelock acquired");
         } else if (!enabled && mWakelock != null) {
             mWakelock.release();
             mWakelock = null;
-            Log.d(TAG, "Wakelock released");
+            addLog(false, "Wakelock released");
         }
     }
 

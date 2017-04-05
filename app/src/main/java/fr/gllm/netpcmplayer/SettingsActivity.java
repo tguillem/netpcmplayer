@@ -30,7 +30,10 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.SwitchPreference;
+import android.util.Log;
 import android.widget.Toast;
+
+import java.util.List;
 
 
 public class SettingsActivity extends AppCompatPreferenceActivity {
@@ -255,6 +258,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             public void onServiceConnected(ComponentName name, IBinder service) {
                 mMain = Main.getService(service);
                 mMain.setOnErrorListener(mOnErrorListener);
+                List<String> logs = mMain.getLogs();
+                if (logs.size() > 0) {
+                    Log.d(Main.TAG, ">>> last logs of the Main service >>>");
+                    for (String log : logs)
+                        Log.d(Main.TAG, log);
+                    Log.d(Main.TAG, "<<< last logs of the Main service <<<");
+                }
                 setupPreferences();
             }
 
