@@ -278,43 +278,45 @@ public class Main extends Service implements Runnable {
         if (!createAudioTrack(mArguments))
             return;
 
-        if (!createSocketServer(mArguments))
-            return;
-
         setWakelockEnabled(mArguments.wakelock);
 
         startService();
 
         while (true) {
+            synchronized (this) {
+                mSocket = null;
+                if (mStopping) {
+                    mServerSocket = null;
+                    break;
+                }
+                if (mServerSocket == null && !createSocketServer(mArguments)) {
+                    break;
+                }
+            }
             try {
                 final Socket socket = mServerSocket.accept();
                 synchronized (this) {
                     if (mServerSocket.isClosed())
-                        break;
+                        continue;
                     mSocket = socket;
                 }
             } catch (IOException e) {
                 synchronized (this) {
                     if (!mStopping)
                         addLog(true, "ServerSocket triggered an IOException", e);
+                    mServerSocket = null;
                 }
-                break;
+                continue;
             }
             addLog(false, "New socket accepted: " + mSocket);
             serverPlay();
-            synchronized (this) {
-                mSocket = null;
-                if (mServerSocket.isClosed())
-                    break;
-            }
         }
 
         setWakelockEnabled(false);
 
         mAudioTrack.release();
         mAudioTrack = null;
-        mServerSocket = null;
-        quitThread("Socket error");
+        quitThread("Thread terminated");
     }
 
     private void quitThread(String error, Exception e) {
@@ -448,21 +450,22 @@ public class Main extends Service implements Runnable {
 
     private void stop(boolean restarting) {
         if (mThread != null) {
+
+            addLog(false, "Stopping the Main thread from the user");
+
             synchronized (this) {
                 mStopping = true;
                 mRestarting = restarting;
-            }
-
-            addLog(false, "Stopping the Main thread from the user");
-            if (mThread.isAlive()) {
-                try {
-                    mServerSocket.close();
-                    synchronized (this) {
+                if (mThread.isAlive()) {
+                    try {
+                        if (mServerSocket != null)
+                            mServerSocket.close();
                         if (mSocket != null)
                             mSocket.close();
-                    }
-                } catch (IOException ignored) {}
+                    } catch (IOException ignored) {}
+                }
             }
+
             try {
                 mThread.join(10000);
                 if (mThread.isAlive()) {
