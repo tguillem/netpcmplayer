@@ -188,6 +188,7 @@ public class Main extends Service implements Runnable {
         try {
             mSocket.setSoTimeout(8000);
         } catch (SocketException e) {
+            addLog(true, "Could not set Socket timeout");
             return;
         }
 
@@ -200,6 +201,7 @@ public class Main extends Service implements Runnable {
                 final int read = is.read(bytes, 0, mSocketReadOnceInBytes);
                 if (read == -1) {
                     mSocket.close();
+                    addLog(true, "Socket closed by the client");
                     return;
                 }
                 mAudioTrack.write(bytes, 0, read);
@@ -210,7 +212,11 @@ public class Main extends Service implements Runnable {
                 mSocket.close();
             } catch (IOException ignored) {
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            synchronized (this) {
+                if (!mStopping)
+                    addLog(true, "Socket triggered an IOException", e);
+            }
         } finally {
             mAudioTrack.flush();
             mAudioTrack.stop();
@@ -239,6 +245,7 @@ public class Main extends Service implements Runnable {
 
         startForeground(R.string.notification_title_npcmp_running, notification);
         startService(new Intent(this, Main.class));
+        addLog(false, "Main Service started");
     }
 
     private void stopService() {
@@ -250,6 +257,7 @@ public class Main extends Service implements Runnable {
 
         stopForeground(true);
         stopSelf();
+        addLog(false, "Main Service stopped");
     }
 
     @Override
@@ -278,7 +286,11 @@ public class Main extends Service implements Runnable {
                         break;
                     mSocket = socket;
                 }
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                synchronized (this) {
+                    if (!mStopping)
+                        addLog(true, "ServerSocket triggered an IOException", e);
+                }
                 break;
             }
             addLog(false, "New socket accepted: " + mSocket);
@@ -432,9 +444,9 @@ public class Main extends Service implements Runnable {
                 mRestarting = restarting;
             }
 
+            addLog(false, "Stopping the Main thread from the user");
             if (mThread.isAlive()) {
                 try {
-
                     mServerSocket.close();
                     synchronized (this) {
                         if (mSocket != null)
@@ -449,6 +461,7 @@ public class Main extends Service implements Runnable {
                     System.exit(-1);
                 }
                 mThread = null;
+                addLog(false, "Main thread joined");
             } catch (InterruptedException ignored) {}
 
             synchronized (this) {
