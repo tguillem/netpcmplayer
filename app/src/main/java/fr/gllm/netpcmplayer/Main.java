@@ -127,6 +127,13 @@ public class Main extends Service implements Runnable {
             parcel.writeInt(serverPort);
             parcel.writeString(serverBindAddr);
         }
+
+        public boolean equals(Arguments args) {
+            return wakelock == args.wakelock && audioSampleRate == args.audioSampleRate &&
+                    audioChannelMask == args.audioChannelMask && audioEncoding == args.audioEncoding &&
+                    audioDelayInMs == args.audioDelayInMs && serverPort == args.serverPort &&
+                    serverBindAddr.equals(args.serverBindAddr);
+        }
     }
 
     static final String TAG = "NPCMP";
@@ -429,6 +436,8 @@ public class Main extends Service implements Runnable {
 
     @MainThread
     public void start(Arguments args) {
+        if (mArguments != null && mArguments.equals(args))
+            return;
         stop(true);
 
         mArguments = args;
@@ -468,6 +477,7 @@ public class Main extends Service implements Runnable {
                 mRestarting = mStopping = false;
             }
         }
+        mArguments = null;
     }
 
     @MainThread
