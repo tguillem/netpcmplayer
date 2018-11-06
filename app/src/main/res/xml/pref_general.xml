@@ -61,21 +61,28 @@
         android:singleLine="true"
         android:title="@string/audio_delay_title" />
 
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="is_server"
+        android:title="@string/is_server_title"
+        android:summaryOn="@string/is_server_summary_on"
+        android:summaryOff="@string/is_server_summary_off" />
+
     <EditTextPreference
-        android:defaultValue="@string/server_port_default"
+        android:defaultValue="@string/port_default"
         android:inputType="numberSigned"
-        android:key="server_port"
+        android:key="port"
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:title="@string/server_port_title" />
+        android:title="@string/port_title" />
 
     <EditTextPreference
         android:inputType="textNoSuggestions"
-        android:key="server_bindaddr"
+        android:key="address"
         android:maxLines="1"
         android:selectAllOnFocus="true"
         android:singleLine="true"
-        android:title="@string/server_bindaddr_title" />
+        android:title="@string/address_title" />
 
 </PreferenceScreen>

@@ -72,9 +72,14 @@
 
     <string name="pref_header_server">Server</string>
 
-    <string name="server_port_title">Server TCP port [1; 65536]</string>
-    <string name="server_port_default">24000</string>
+    <string name="is_server_title">Socket or SocketServer</string>
+    <string name="is_server_summary_on">NetPCMPlayer will use a SocketServer</string>
+    <string name="is_server_summary_off">NetPCMPlayer will use a Socket</string>
 
-    <string name="server_bindaddr_title">Bind address</string>
+    <string name="port_title">TCP port [1; 65536]</string>
+    <string name="port_default">24000</string>
+
+    <string name="address_title">Connect address</string>
+    <string name="server_address_title">Bind address</string>
 
 </resources>

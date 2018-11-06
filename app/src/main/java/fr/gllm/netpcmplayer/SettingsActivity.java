@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
@@ -44,8 +45,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     static final String KEY_AUDIO_SAMPLE_RATE ="audio_samplerate";
     static final String KEY_AUDIO_CHANNELS ="audio_channels";
     static final String KEY_AUDIO_DELAY ="audio_delay";
-    static final String KEY_SERVER_PORT ="server_port";
-    static final String KEY_SERVER_BINDADDR ="server_bindaddr";
+    static final String KEY_IS_SERVER = "is_server";
+    static final String PORT ="port";
+    static final String ADDRESS ="address";
 
     private static boolean isXLargeTablet(Context context) {
         return (context.getResources().getConfiguration().screenLayout
@@ -71,6 +73,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         private Main mMain;
         private SwitchPreference mRunPref;
         private SwitchPreference mRunOnBootPref;
+        private EditTextPreference mAddressPref;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -80,8 +83,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             final SharedPreferences sharedPrefs =
                     PreferenceManager.getDefaultSharedPreferences(getActivity());
             findPreference("audio_delay").setSummary(sharedPrefs.getString("audio_delay", ""));
-            findPreference("server_port").setSummary(sharedPrefs.getString("server_port", ""));
-            findPreference("server_bindaddr").setSummary(sharedPrefs.getString("server_bindaddr", ""));
+            findPreference("port").setSummary(sharedPrefs.getString("port", ""));
+            findPreference("address").setSummary(sharedPrefs.getString("address", ""));
 
             /* Setup native sample rate at first boot */
             if (sharedPrefs.getString("audio_samplerate", "-1").equals("-1")) {
@@ -108,6 +111,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             mRunPref = (SwitchPreference) findPreference("general_run");
             mRunPref.setOnPreferenceChangeListener(mRunListener);
 
+            mAddressPref = (EditTextPreference) findPreference("address");
+            mAddressPref.setOnPreferenceChangeListener(mAddressListener);
+
             if (mMain.isRunning())
                 mRunPref.setChecked(true);
 
@@ -119,8 +125,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             findPreference("audio_samplerate").setOnPreferenceChangeListener(mGeneralListener);
             findPreference("audio_channels").setOnPreferenceChangeListener(mGeneralListener);
             findPreference("audio_delay").setOnPreferenceChangeListener(mAudioDelayListener);
-            findPreference("server_port").setOnPreferenceChangeListener(mServerPortListener);
-            findPreference("server_bindaddr").setOnPreferenceChangeListener(mServerBindAddrListener);
+            findPreference("is_server").setOnPreferenceChangeListener(mIsServerListener);
+            findPreference("port").setOnPreferenceChangeListener(mPortListener);
 
             if (mRunOnBootPref.isChecked()) {
                 mRunPref.setChecked(true);
@@ -191,7 +197,17 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             }
         };
 
-        private final Preference.OnPreferenceChangeListener mServerPortListener =
+        private final Preference.OnPreferenceChangeListener mIsServerListener =
+                new Preference.OnPreferenceChangeListener() {
+                    @Override
+                    public boolean onPreferenceChange(Preference preference, Object value) {
+                        mAddressPref.setTitle((Boolean) value ? R.string.server_address_title
+                                : R.string.address_title);
+                        restartIfNeeded();
+                        return true;
+                    }
+                };
+        private final Preference.OnPreferenceChangeListener mPortListener =
                 new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object value) {
@@ -211,7 +227,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             }
         };
 
-        private final Preference.OnPreferenceChangeListener mServerBindAddrListener =
+        private final Preference.OnPreferenceChangeListener mAddressListener =
                 new Preference.OnPreferenceChangeListener() {
             @Override
             public boolean onPreferenceChange(Preference preference, Object value) {
@@ -313,7 +329,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 getIntPref(prefs, KEY_AUDIO_CHANNELS),
                 getIntPref(prefs, KEY_AUDIO_ENCODING),
                 getIntPref(prefs, KEY_AUDIO_DELAY),
-                getIntPref(prefs, KEY_SERVER_PORT),
-                prefs.getString(KEY_SERVER_BINDADDR, ""));
+                prefs.getBoolean(KEY_IS_SERVER, false),
+                getIntPref(prefs, PORT),
+                prefs.getString(ADDRESS, ""));
     }
 }

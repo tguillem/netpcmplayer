@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class Main extends Service implements Runnable {
+    private static final int CONNECT_TIMEOUT = 10000; // 10sec
 
     private class LocalBinder extends Binder {
         Main getService() {
@@ -64,30 +65,33 @@ public class Main extends Service implements Runnable {
         final int audioChannelMask;
         final int audioEncoding;
         final int audioDelayInMs;
-        final int serverPort;
-        final String serverBindAddr;
+        final boolean isServer;
+        final int port;
+        final String address;
+
 
         Arguments(boolean wakelock, int audioSampleRate, int audioChannelMask, int audioEncoding,
-                  int audioDelayInMs, int serverPort, String serverBindAddr) {
+                  int audioDelayInMs, boolean isServer, int port, String address) {
             this.wakelock = wakelock;
             this.audioSampleRate = audioSampleRate;
             this.audioChannelMask = audioChannelMask;
             this.audioEncoding = audioEncoding;
             this.audioDelayInMs = audioDelayInMs;
-            this.serverPort = serverPort;
-            this.serverBindAddr = serverBindAddr;
+            this.isServer = isServer;
+            this.port = port;
+            this.address = address;
         }
 
         boolean isValid() {
             return audioSampleRate > 0 && audioChannelMask != -1 && audioEncoding != -1 &&
-                    audioDelayInMs > 0 && serverPort > 0 && serverPort < 65536;
+                    audioDelayInMs > 0 && port > 0 && port < 65536;
         }
 
         @Override
         public String toString() {
             return "wl: " + wakelock + ", as: " + audioSampleRate + " Hz" + ", ac:" +
                     Integer.bitCount(audioChannelMask) + ", ae: " + audioEncoding + ", ad: " +
-                    audioDelayInMs + "ms" + ", sp: " +serverPort + ", sb: " + serverBindAddr;
+                    audioDelayInMs + "ms" + ", sp: " +port + ", sb: " + address;
         }
 
         Arguments(Parcel in) {
@@ -96,8 +100,9 @@ public class Main extends Service implements Runnable {
             audioChannelMask = in.readInt();
             audioEncoding = in.readInt();
             audioDelayInMs = in.readInt();
-            serverPort = in.readInt();
-            serverBindAddr = in.readString();
+            isServer = in.readInt() != 0;
+            port = in.readInt();
+            address = in.readString();
         }
 
         public static final Creator<Arguments> CREATOR = new Creator<Arguments>() {
@@ -124,15 +129,16 @@ public class Main extends Service implements Runnable {
             parcel.writeInt(audioChannelMask);
             parcel.writeInt(audioEncoding);
             parcel.writeInt(audioDelayInMs);
-            parcel.writeInt(serverPort);
-            parcel.writeString(serverBindAddr);
+            parcel.writeByte((byte) (isServer ? 1 : 0));
+            parcel.writeInt(port);
+            parcel.writeString(address);
         }
 
         public boolean equals(Arguments args) {
             return wakelock == args.wakelock && audioSampleRate == args.audioSampleRate &&
                     audioChannelMask == args.audioChannelMask && audioEncoding == args.audioEncoding &&
-                    audioDelayInMs == args.audioDelayInMs && serverPort == args.serverPort &&
-                    serverBindAddr.equals(args.serverBindAddr);
+                    audioDelayInMs == args.audioDelayInMs && isServer == args.isServer &&
+                    port == args.port && address.equals(args.address);
         }
     }
 
@@ -281,6 +287,9 @@ public class Main extends Service implements Runnable {
         setWakelockEnabled(mArguments.wakelock);
 
         startService();
+        ServerSocket serverSocket = null;
+        Socket socket = null;
+        long nextTimeout = 0;
 
         while (true) {
             synchronized (this) {
@@ -289,27 +298,42 @@ public class Main extends Service implements Runnable {
                     mServerSocket = null;
                     break;
                 }
-                if (mServerSocket == null && !createSocketServer(mArguments)) {
-                    break;
-                }
             }
             try {
-                final Socket socket = mServerSocket.accept();
-                synchronized (this) {
-                    if (mServerSocket.isClosed())
-                        continue;
-                    mSocket = socket;
+                if (mArguments.isServer) {
+                    if (serverSocket == null) {
+                        serverSocket = new ServerSocket();
+                        serverSocket.setReceiveBufferSize(mSocketReadOnceInBytes);
+                        serverSocket.bind(mArguments.address != null ?
+                                new InetSocketAddress(mArguments.address, mArguments.port) :
+                                new InetSocketAddress(mArguments.port));
+                        socket = serverSocket.accept();
+
+                    }
+                } else {
+                    if (nextTimeout > 0)
+                        Thread.sleep(nextTimeout);
+                    socket = new Socket(mArguments.address, mArguments.port);
                 }
             } catch (IOException e) {
-                synchronized (this) {
-                    if (!mStopping)
-                        addLog(true, "ServerSocket triggered an IOException", e);
-                    mServerSocket = null;
-                }
-                continue;
+                if (!mStopping)
+                    addLog(true, "Socket triggered an IOException", e);
+                if (mArguments.isServer && serverSocket == null
+                        || nextTimeout == 0 /* fail the first time */)
+                    quitThread("Socket failed", e);
+                serverSocket = null;
+                socket = null;
+            } catch (InterruptedException ignored) {
             }
-            addLog(false, "New socket accepted: " + mSocket);
-            serverPlay();
+            synchronized (this) {
+                mSocket = socket;
+                mServerSocket = serverSocket;
+            }
+            if (mSocket != null) {
+                addLog(false, "New socket accepted: " + mSocket);
+                serverPlay();
+                nextTimeout = CONNECT_TIMEOUT;
+            }
         }
 
         setWakelockEnabled(false);
@@ -326,6 +350,7 @@ public class Main extends Service implements Runnable {
                     mOnErrorListener.OnError(error);
                 addLog(true, "thread: " + error, e);
             }
+            mStopping = true;
         }
         stopService();
     }
@@ -422,23 +447,9 @@ public class Main extends Service implements Runnable {
         return true;
     }
 
-    private boolean createSocketServer(Arguments args) {
-        try {
-            mServerSocket = new ServerSocket();
-            mServerSocket.setReceiveBufferSize(mSocketReadOnceInBytes);
-            mServerSocket.bind(args.serverBindAddr != null ?
-                    new InetSocketAddress(args.serverBindAddr, args.serverPort) :
-                    new InetSocketAddress(args.serverPort));
-        } catch (Exception e) {
-            quitThread("ServerSocket creation failed", e);
-            return false;
-        }
-        return true;
-    }
-
     @MainThread
     public void start(Arguments args) {
-        if (mArguments != null && mArguments.equals(args))
+        if (!mStopping && mArguments != null && mArguments.equals(args))
             return;
         stop(true);
 
@@ -456,17 +467,16 @@ public class Main extends Service implements Runnable {
             synchronized (this) {
                 mStopping = true;
                 mRestarting = restarting;
-                if (mThread.isAlive()) {
-                    try {
-                        if (mServerSocket != null)
-                            mServerSocket.close();
-                        if (mSocket != null)
-                            mSocket.close();
-                    } catch (IOException ignored) {}
-                }
+                try {
+                    if (mServerSocket != null)
+                        mServerSocket.close();
+                    if (mSocket != null)
+                        mSocket.close();
+                } catch (IOException ignored) {}
             }
 
             try {
+                mThread.interrupt();
                 mThread.join(10000);
                 if (mThread.isAlive()) {
                     quitThread("NetPCMPlayer process doesn't respond to shutdown, force kill");
